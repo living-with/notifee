@@ -581,6 +581,10 @@ class NotificationManager {
               if (androidBundle.getAsForegroundService()) {
                 ForegroundService.start(hashCode, notification, notificationModel.toBundle());
               } else {
+                if (notificationModel.getId().startsWith("exercises")) {
+                  hashCode = "exercises".hashCode();
+                }
+
                 NotificationManagerCompat.from(getApplicationContext())
                     .notify(androidBundle.getTag(), hashCode, notification);
               }
