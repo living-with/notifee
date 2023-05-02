@@ -561,7 +561,7 @@ class NotificationManager {
               // build notification
               Notification notification = Objects.requireNonNull(builder).build();
 
-              int hashCode = notificationModel.getHashCode();
+              int hashCode = notificationModel.getData().getString("overrideNotificationId", notificationModel.getId()).hashCode();
 
               NotificationAndroidModel androidBundle = notificationModel.getAndroid();
               if (androidBundle.getLoopSound()) {
@@ -581,10 +581,6 @@ class NotificationManager {
               if (androidBundle.getAsForegroundService()) {
                 ForegroundService.start(hashCode, notification, notificationModel.toBundle());
               } else {
-                if (notificationModel.getId().startsWith("exercises")) {
-                  hashCode = "exercises".hashCode();
-                }
-
                 NotificationManagerCompat.from(getApplicationContext())
                     .notify(androidBundle.getTag(), hashCode, notification);
               }
