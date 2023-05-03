@@ -82,6 +82,7 @@ class NotificationManager {
   private static final int NOTIFICATION_TYPE_ALL = 0;
   private static final int NOTIFICATION_TYPE_DISPLAYED = 1;
   private static final int NOTIFICATION_TYPE_TRIGGER = 2;
+  private static final String OVERRIDE_NOTIFICATION_ID_FOR_DISPLAY = "overrideNotificationIdForDisplay";
 
   private static Task<NotificationCompat.Builder> notificationBundleToBuilder(
       NotificationModel notificationModel) {
@@ -561,7 +562,7 @@ class NotificationManager {
               // build notification
               Notification notification = Objects.requireNonNull(builder).build();
 
-              int hashCode = notificationModel.getData().getString("overrideNotificationId", notificationModel.getId()).hashCode();
+              int hashCode = notificationModel.getData().getString(OVERRIDE_NOTIFICATION_ID_FOR_DISPLAY, notificationModel.getId()).hashCode();
 
               NotificationAndroidModel androidBundle = notificationModel.getAndroid();
               if (androidBundle.getLoopSound()) {
