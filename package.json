@@ -33,13 +33,13 @@
     "tests_rn:packager": "cd tests_react_native && npx react-native start",
     "tests_rn:packager:reset-cache": "cd tests_react_native && npx react-native start --reset-cache",
     "run:android": "cd tests_react_native && npx react-native run-android  --variant 'debug'",
-    "run:ios": "cd tests_react_native && npx react-native run-ios --scheme=Notifee --simulator 'iPhone 14'",
+    "run:ios": "cd tests_react_native && npx react-native run-ios --scheme=Notifee --simulator 'iPhone 15'",
     "tests_rn:test": "cd tests_react_native && jest",
     "tests_rn:test-watch": "cd tests_react_native && jest --watch",
     "tests_rn:test-coverage": "cd tests_react_native && jest --coverage",
     "tests_rn:android:build": "cd tests_react_native/android && ./gradlew assembleDebug -DtestBuildType=debug",
     "tests_rn:android:test": "cd tests_react_native && npm_config_yes=true npx cavy-cli run-android --no-jetifier",
-    "tests_rn:ios:test": "cd tests_react_native && npm_config_yes=true npx cavy-cli run-ios --scheme=Notifee --simulator 'iPhone 14'",
+    "tests_rn:ios:test": "cd tests_react_native && npm_config_yes=true npx cavy-cli run-ios --scheme=Notifee --simulator 'iPhone 15'",
     "tests_rn:ios:pod:install": "cd tests_react_native && npm_config_yes=true npx pod-install && cd .."
   },
   "devDependencies": {
@@ -111,5 +111,6 @@
   "dependencies": {
     "axios": "^0.26.0",
     "shelljs": "^0.8.5"
-  }
+  },
+  "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }
