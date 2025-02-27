@@ -25,7 +25,9 @@ import Notifee, {
   Event,
   AuthorizationStatus,
   TimestampTrigger,
-  RepeatFrequency,
+  TriggerType,
+  // TimestampTrigger,
+  // RepeatFrequency,
 } from '@notifee/react-native';
 
 import { notifications } from './notifications';
@@ -42,6 +44,12 @@ const colors: { [key: string]: string } = {
 };
 
 const channels: AndroidChannel[] = [
+  {
+    name: 'Scheduled',
+    id: 'high',
+    importance: AndroidImportance.HIGH,
+    // sound: 'hollow',
+  },
   {
     name: 'High Importance',
     id: 'high',
@@ -81,19 +89,8 @@ async function onMessage(message: RemoteMessage): Promise<void> {
   // });
 }
 
-async function onBackgroundMessage(message: RemoteMessage): Promise<void> {
-  console.log('onBackgroundMessage New FCM Message', message);
-  // await Notifee.displayNotification({
-  //   title: 'onMessage',
-  //   body: `with message ${message.messageId}`,
-  //   android: { channelId: 'default', tag: 'hello1' },
-  // });
-}
-
-firebase.messaging().setBackgroundMessageHandler(onBackgroundMessage);
 function Root(): any {
-  // @ts-ignore
-  const [id, setId] = React.useState<string | null>(null);
+  const [id, _] = React.useState<string | null>(null);
 
   async function init(): Promise<void> {
     const fcmToken = await firebase.messaging().getToken();
@@ -153,6 +150,31 @@ function Root(): any {
     init().catch(console.error);
   }, []);
 
+  const scheduleNotification = async () => {
+    const trigger: TimestampTrigger = {
+      type: TriggerType.TIMESTAMP,
+      timestamp: new Date(Date.now() + 10000).getTime(),
+    };
+
+    try {
+      await Notifee.createTriggerNotification(
+        {
+          title: 'title',
+          body: 'body',
+          subtitle: 'subtitle',
+          id: 'notifId',
+          android: {
+            channelId: 'Scheduled',
+            badgeCount: 1,
+          },
+        },
+        trigger,
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   async function displayNotification(
     notification: Notification | Notification[],
     channelId: string,
@@ -174,13 +196,12 @@ function Root(): any {
 
       const date = new Date(Date.now());
       date.setSeconds(date.getSeconds() + 15);
-      // @ts-ignore
-      const trigger: TimestampTrigger = {
-        type: 0,
-        timestamp: date.getTime(),
-        alarmManager: true,
-        repeatFrequency: RepeatFrequency.HOURLY,
-      };
+      // const trigger: TimestampTrigger = {
+      //   type: 0,
+      //   timestamp: date.getTime(),
+      //   alarmManager: true,
+      //   repeatFrequency: RepeatFrequency.HOURLY,
+      // };
       // Notifee.createTriggerNotification(notification, trigger)
       //   .then(notificationId => setId(notificationId))
       //   .catch(console.error);
@@ -252,6 +273,10 @@ function Root(): any {
             }}
           />
           <Button
+            title={`create trigger notification +15secs from now`}
+            onPress={async (): Promise<void> => scheduleNotification()}
+          />
+          <Button
             title={`Cancel all `}
             onPress={async () => {
               await Notifee.cancelAllNotifications();
@@ -298,12 +323,12 @@ function Root(): any {
             }}
           />
         </View>
-        {notifications.map(({ key, notification }): any => (
-          <View key={key} style={styles.rowItem}>
+        {notifications.map(({ key, notification }, index): any => (
+          <View key={`${key}_${index}`} style={styles.rowItem}>
             <Text style={styles.header}>{key}</Text>
-            <View style={styles.row}>
-              {channels.map(channel => (
-                <View key={channel.id + key} style={styles.rowItem}>
+            <View key={`${key}_row_${index}`} style={styles.row}>
+              {channels.map((channel, subIndex) => (
+                <View key={channel.id + key + index + subIndex} style={styles.rowItem}>
                   <Button
                     title={`>.`}
                     onPress={(): any => displayNotification(notification, channel.id)}

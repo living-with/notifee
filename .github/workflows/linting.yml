@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   linting:
-    name: ESLint
+    name: Lint
     timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
@@ -23,7 +23,12 @@ jobs:
           submodules: recursive
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+      - name: Configure JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Set workflow variables
         id: workflow-variables
         run: |
@@ -33,7 +38,7 @@ jobs:
         id: yarn-cache
         with:
           path: ${{ steps.workflow-variables.outputs.yarn-cache }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package.json') }}
+          key: ${{ runner.os }}-yarn-v1-${{ hashFiles('package.json', 'packages/react-native/package.json', 'tests_react_native/package.json') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
       - name: Yarn Install
@@ -43,8 +48,10 @@ jobs:
           retry_wait_seconds: 30
           max_attempts: 3
           command: yarn --no-audit --prefer-offline
-      - name: Lint
+      - name: Lint javascript
         run: yarn validate:all:js
+      - name: Lint Native - validate:all:check
+        run: yarn format:all:check
 
   typescript:
     name: TypeScript Build Validation
@@ -57,7 +64,7 @@ jobs:
           submodules: recursive
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - name: Set workflow variables
         id: workflow-variables
         run: |
@@ -67,7 +74,7 @@ jobs:
         id: yarn-cache
         with:
           path: ${{ steps.workflow-variables.outputs.yarn-cache }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package.json') }}
+          key: ${{ runner.os }}-yarn-v1-${{ hashFiles('package.json', 'packages/react-native/package.json', 'tests_react_native/package.json') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
       - name: Yarn Install
@@ -91,7 +98,7 @@ jobs:
           submodules: recursive
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
       - name: Set workflow variables
         id: workflow-variables
         run: |
@@ -101,7 +108,7 @@ jobs:
         id: yarn-cache
         with:
           path: ${{ steps.workflow-variables.outputs.yarn-cache }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/package.json') }}-with-website
+          key: ${{ runner.os }}-yarn-v1-${{ hashFiles('package.json', 'packages/react-native/package.json', 'tests_react_native/package.json') }}}-with-website
           restore-keys: |
             ${{ runner.os }}-yarn-
       - name: Yarn Install

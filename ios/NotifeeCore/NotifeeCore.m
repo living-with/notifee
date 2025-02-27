@@ -205,9 +205,10 @@
       }
     }
 
-    UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:notification[@"id"]
-                                                                          content:content
-                                                                          trigger:nil];
+    UNNotificationRequest *request =
+        [UNNotificationRequest requestWithIdentifier:notification[@"id"]
+                                             content:content
+                                             trigger:nil];
 
     dispatch_async(dispatch_get_main_queue(), ^{
       [center addNotificationRequest:request
@@ -224,7 +225,6 @@
                }];
     });
   });
-  
 }
 
 /* Create a trigger notification .
@@ -236,63 +236,62 @@
 + (void)createTriggerNotification:(NSDictionary *)notification
                       withTrigger:(NSDictionary *)trigger
                         withBlock:(notifeeMethodVoidBlock)block {
-  
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-      UNMutableNotificationContent *content = [self buildNotificationContent:notification
-                                                                 withTrigger:trigger];
-      UNNotificationTrigger *unTrigger = [NotifeeCoreUtil triggerFromDictionary:trigger];
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    UNMutableNotificationContent *content = [self buildNotificationContent:notification
+                                                               withTrigger:trigger];
+    UNNotificationTrigger *unTrigger = [NotifeeCoreUtil triggerFromDictionary:trigger];
 
-      if (unTrigger == nil) {
-        // do nothing if trigger is null
-        return dispatch_async(dispatch_get_main_queue(), ^{
-          block(nil);
-        });
-      }
-
-      UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
-
-      NSMutableDictionary *notificationDetail = [notification mutableCopy];
-      notificationDetail[@"remote"] = @NO;
-
-      if (@available(iOS 15.0, *)) {
-        if (notification[@"ios"][@"communicationInfo"] != nil) {
-          INSendMessageIntent *intent = [NotifeeCoreUtil
-              generateSenderIntentForCommunicationNotification:notification[@"ios"]
-                                                                           [@"communicationInfo"]];
-
-          // Use the intent to initialize the interaction.
-          INInteraction *interaction = [[INInteraction alloc] initWithIntent:intent response:nil];
-          interaction.direction = INInteractionDirectionIncoming;
-          [interaction donateInteractionWithCompletion:^(NSError *error) {
-            if (error)
-              NSLog(@"NotifeeCore: Could not donate interaction for communication notification: %@",
-                    error);
-          }];
-
-          content = [[content contentByUpdatingWithProvider:intent error:nil] mutableCopy];
-        }
-      }
-
-      UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:notification[@"id"]
-                                                                            content:content
-                                                                            trigger:unTrigger];
-
-      dispatch_async(dispatch_get_main_queue(), ^{
-        [center addNotificationRequest:request
-                 withCompletionHandler:^(NSError *error) {
-                   if (error == nil) {
-                     [[NotifeeCoreDelegateHolder instance] didReceiveNotifeeCoreEvent:@{
-                       @"type" : @(NotifeeCoreEventTypeTriggerNotificationCreated),
-                       @"detail" : @{
-                         @"notification" : notificationDetail,
-                       }
-                     }];
-                   }
-                   block(error);
-                 }];
+    if (unTrigger == nil) {
+      // do nothing if trigger is null
+      return dispatch_async(dispatch_get_main_queue(), ^{
+        block(nil);
       });
+    }
+
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+
+    NSMutableDictionary *notificationDetail = [notification mutableCopy];
+    notificationDetail[@"remote"] = @NO;
+
+    if (@available(iOS 15.0, *)) {
+      if (notification[@"ios"][@"communicationInfo"] != nil) {
+        INSendMessageIntent *intent = [NotifeeCoreUtil
+            generateSenderIntentForCommunicationNotification:notification[@"ios"]
+                                                                         [@"communicationInfo"]];
+
+        // Use the intent to initialize the interaction.
+        INInteraction *interaction = [[INInteraction alloc] initWithIntent:intent response:nil];
+        interaction.direction = INInteractionDirectionIncoming;
+        [interaction donateInteractionWithCompletion:^(NSError *error) {
+          if (error)
+            NSLog(@"NotifeeCore: Could not donate interaction for communication notification: %@",
+                  error);
+        }];
+
+        content = [[content contentByUpdatingWithProvider:intent error:nil] mutableCopy];
+      }
+    }
+
+    UNNotificationRequest *request =
+        [UNNotificationRequest requestWithIdentifier:notification[@"id"]
+                                             content:content
+                                             trigger:unTrigger];
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [center addNotificationRequest:request
+               withCompletionHandler:^(NSError *error) {
+                 if (error == nil) {
+                   [[NotifeeCoreDelegateHolder instance] didReceiveNotifeeCoreEvent:@{
+                     @"type" : @(NotifeeCoreEventTypeTriggerNotificationCreated),
+                     @"detail" : @{
+                       @"notification" : notificationDetail,
+                     }
+                   }];
+                 }
+                 block(error);
+               }];
     });
-  
+  });
 }
 
 /**
@@ -736,10 +735,25 @@
 
 + (void)setBadgeCount:(NSInteger)count withBlock:(notifeeMethodVoidBlock)block {
   if (![NotifeeCoreUtil isAppExtension]) {
-    // If count is 0, set to -1 instead to avoid notifications in tray being cleared
-    NSInteger newCount = count == 0 ? -1 : count;
-    UIApplication *application = (UIApplication *)[NotifeeCoreUtil notifeeUIApplication];
-    [application setApplicationIconBadgeNumber:newCount];
+    if (@available(iOS 16.0, macOS 10.13, macCatalyst 16.0, tvOS 16.0, visionOS 1.0, *)) {
+      UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+      [center setBadgeCount:count
+          withCompletionHandler:^(NSError *error) {
+            if (error) {
+              NSLog(@"NotifeeCore: Could not setBadgeCount: %@", error);
+              block(error);
+            } else {
+              block(nil);
+            }
+          }];
+      return;
+    } else {
+      // If count is 0, set to -1 instead to avoid notifications in tray being cleared
+      // this breaks in iOS 18, but at that point we're using the new setBadge API
+      NSInteger newCount = count == 0 ? -1 : count;
+      UIApplication *application = (UIApplication *)[NotifeeCoreUtil notifeeUIApplication];
+      [application setApplicationIconBadgeNumber:newCount];
+    }
   }
   block(nil);
 }
@@ -757,16 +771,31 @@
   if (![NotifeeCoreUtil isAppExtension]) {
     UIApplication *application = (UIApplication *)[NotifeeCoreUtil notifeeUIApplication];
     NSInteger currentCount = application.applicationIconBadgeNumber;
-    // If count is -1, set currentCount to 0 before incrementing
+    // If count -1 (to clear badge w/o clearing notifications),
+    // set currentCount to 0 before incrementing
     if (currentCount == -1) {
       currentCount = 0;
     }
 
     NSInteger newCount = currentCount + incrementBy;
 
-    [application setApplicationIconBadgeNumber:newCount];
-    block(nil);
+    if (@available(iOS 16.0, macOS 10.13, macCatalyst 16.0, tvOS 16.0, visionOS 1.0, *)) {
+      UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+      [center setBadgeCount:newCount
+          withCompletionHandler:^(NSError *error) {
+            if (error) {
+              NSLog(@"NotifeeCore: Could not incrementBadgeCount: %@", error);
+              block(error);
+            } else {
+              block(nil);
+            }
+          }];
+      return;
+    } else {
+      [application setApplicationIconBadgeNumber:newCount];
+    }
   }
+  block(nil);
 }
 
 + (void)decrementBadgeCount:(NSInteger)decrementBy withBlock:(notifeeMethodVoidBlock)block {
@@ -774,11 +803,26 @@
     UIApplication *application = (UIApplication *)[NotifeeCoreUtil notifeeUIApplication];
     NSInteger currentCount = application.applicationIconBadgeNumber;
     NSInteger newCount = currentCount - decrementBy;
-    // If count is 0 or less, set to -1 instead to avoid notifications in tray being cleared
-    if (newCount < 1) {
-      newCount = -1;
+    if (@available(iOS 16.0, macOS 10.13, macCatalyst 16.0, tvOS 16.0, visionOS 1.0, *)) {
+      UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+      [center setBadgeCount:newCount
+          withCompletionHandler:^(NSError *error) {
+            if (error) {
+              NSLog(@"NotifeeCore: Could not incrementBadgeCount: %@", error);
+              block(error);
+            } else {
+              block(nil);
+            }
+          }];
+      return;
+    } else {
+      // If count is 0 or less, set to -1 instead to avoid notifications in tray being cleared
+      // this breaks in iOS 18, but at that point we're using the new setBadge API
+      if (newCount < 1) {
+        newCount = -1;
+      }
+      [application setApplicationIconBadgeNumber:newCount];
     }
-    [application setApplicationIconBadgeNumber:newCount];
   }
 
   block(nil);
